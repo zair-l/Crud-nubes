@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>CRUD de Usuarios</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; padding: 40px; }
+        .container { max-width: 600px; margin: 0 auto; background: #1e293b; padding: 20px; border-radius: 10px; }
+        input, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; border-radius: 5px; border: none; }
+        input { background: #334155; color: white; }
+        button { background: #38bdf8; color: #0f172a; font-weight: bold; cursor: pointer; }
+        .btn-delete { background: #ef4444; color: white; width: auto; padding: 5px 10px; }
+        .btn-edit { background: #f59e0b; color: white; width: auto; padding: 5px 10px; margin-right: 5px; }
+        .user-card { background: #334155; padding: 15px; margin-top: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .actions { display: flex; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Gestión de Usuarios</h2>
+        <form id="formUsuario">
+            <input type="text" id="nombre" placeholder="Nombre completo" required>
+            <input type="email" id="email" placeholder="Correo electrónico" required>
+            <button type="submit">Agregar Usuario</button>
+        </form>
+        <hr style="border-color: #475569; margin: 20px 0;">
+        <h3>Lista de Usuarios</h3>
+        <div id="listaUsuarios">Cargando...</div>
+    </div>
+
+    <script>
+        const API_URL = '/usuarios'; 
+        const form = document.getElementById('formUsuario');
+        const lista = document.getElementById('listaUsuarios');
+
+        async function obtenerUsuarios() {
+            try {
+                const respuesta = await fetch(API_URL);
+                const usuarios = await respuesta.json();
+                lista.innerHTML = ''; 
+                if (usuarios.length === 0) {
+                    lista.innerHTML = '<p>No hay usuarios registrados.</p>';
+                    return;
+                }
+                usuarios.forEach(user => {
+                    lista.innerHTML += `
+                        <div class="user-card">
+                            <div><strong>${user.nombre}</strong><br><small>${user.email}</small></div>
+                            <div class="actions">
+                                <button class="btn-edit" onclick="editarUsuario(${user.id}, '${user.nombre}', '${user.email}')">Editar</button>
+                                <button class="btn-delete" onclick="eliminarUsuario(${user.id})">Eliminar</button>
+                            </div>
+                        </div>`;
+                });
+            } catch (error) {
+                lista.innerHTML = '<p style="color:red;">Error de conexión.</p>';
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            const datos = {
+                nombre: document.getElementById('nombre').value,
+                email: document.getElementById('email').value
+            };
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datos)
+            });
+            if (res.ok) { form.reset(); obtenerUsuarios(); }
+            else { alert('Error al guardar.'); }
+        });
+
+        async function editarUsuario(id, nombreAct, emailAct) {
+            const nNombre = prompt('Nuevo nombre:', nombreAct);
+            const nEmail = prompt('Nuevo correo:', emailAct);
+            if (nNombre && nEmail) {
+                await fetch(`${API_URL}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre: nNombre, email: nEmail })
+                });
+                obtenerUsuarios();
+            }
+        }
+
+        async function eliminarUsuario(id) {
+            if (confirm('¿Eliminar usuario?')) {
+                await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                obtenerUsuarios();
+            }
+        }
+        obtenerUsuarios();
+    </script>
+</body>
+</html>
